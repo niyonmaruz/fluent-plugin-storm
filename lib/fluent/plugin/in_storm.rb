@@ -1,7 +1,7 @@
 # coding: utf-8
 module Fluent
   class StormInput < Fluent::Input
-    Fluent::Plugin.register_input('storm-metrics', self)
+    Fluent::Plugin.register_input('storm', self)
     config_param :tag, :string, default: 'storm'
     config_param :interval, :integer, default: 60
     config_param :url, :string, default: 'http://localhost:8080'
