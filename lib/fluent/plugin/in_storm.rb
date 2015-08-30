@@ -62,16 +62,17 @@ module Fluent
               uri = URI.parse("#{@url}/api/v1/topology/#{topology_id}?sys=#{@sys}")
             end
             #@log.debug(uri)
+            emit_record = Hash.new(0)
             Net::HTTP.start(uri.host, uri.port) do |http|
               request = Net::HTTP::Get.new(uri.request_uri)
               http.request(request) do |response|
-                record = JSON.parse(response.body) rescue next
-                record.delete("visualizationTable")
-                record.delete("configuration")
+                emit_record = JSON.parse(response.body) rescue next
+                emit_record.delete("visualizationTable")
+                emit_record.delete("configuration")
               end
             end
-            @log.debug(record)
-            Engine.emit(@tag, @time, record)
+            @log.debug(emit_record)
+            Engine.emit(@tag, @time, emit_record)
           end
         end
       end
