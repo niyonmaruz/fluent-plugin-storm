@@ -1,6 +1,6 @@
 ## fluent-plugin-storm
 
-[storm](https://storm.apache.org/) stats input plugin
+[storm](https://storm.apache.org/) [stats](https://github.com/apache/storm/blob/master/STORM-UI-REST-API.md#apiv1topologyid-get) input plugin
 
 ## Installation
 
