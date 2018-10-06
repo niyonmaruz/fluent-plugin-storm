@@ -1,4 +1,5 @@
 # coding: utf-8
+require 'fluent/input'
 module Fluent
   class StormInput < Fluent::Input
     Fluent::Plugin.register_input('storm', self)
@@ -7,6 +8,10 @@ module Fluent
     config_param :url, :string, default: 'http://localhost:8080'
     config_param :window, :string, :default => nil
     config_param :sys, :string, :default => nil
+
+    unless method_defined?(:router)
+      define_method("router") { Fluent::Engine }
+    end
 
     def initialize
       super
@@ -72,7 +77,7 @@ module Fluent
               end
             end
             @log.debug(emit_record)
-            Engine.emit(@tag, @time, emit_record)
+            router.emit(@tag, @time, emit_record)
           end
         end
       end
