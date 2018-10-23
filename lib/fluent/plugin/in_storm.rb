@@ -1,8 +1,12 @@
 # coding: utf-8
-require 'fluent/input'
-module Fluent
-  class StormInput < Fluent::Input
+require 'json'
+require 'fluent/plugin/input'
+module Fluent::Plugin
+  class OsqueryInput < Fluent::Plugin::Input
     Fluent::Plugin.register_input('storm', self)
+
+    helpers :timer
+
     config_param :tag, :string, default: 'storm'
     config_param :interval, :integer, default: 60
     config_param :url, :string, default: 'http://localhost:8080'
@@ -17,7 +21,6 @@ module Fluent
       super
       require 'net/http'
       require 'uri'
-      require 'json'
     end
 
     def configure(conf)
@@ -25,32 +28,21 @@ module Fluent
     end
 
     def start
-      @loop = Coolio::Loop.new
-      @tw = TimerWatcher.new(interval, true, log, &method(:execute))
-      @tw.attach(@loop)
-      @thread = Thread.new(&method(:run))
+      super
+      timer_execute(:in_storm_timer, interval, &method(:execute))
     end
 
     def shutdown
-      @tw.detach
-      @loop.stop
-      @thread.join
-    end
-
-    def run
-      @loop.run
-    rescue => e
-      @log.error 'unexpected error', error: e.to_s
-      @log.error_backtrace
+      super
     end
 
     private
 
     def execute
-      @time = Engine.now
+      @time = Fluent::Engine.now
       record = Hash.new(0)
       uri = URI.parse("#{@url}/api/v1/topology/summary")
-      @log.debug(uri)
+      log.debug(uri)
       Net::HTTP.start(uri.host, uri.port) do |http|
         request = Net::HTTP::Get.new(uri.request_uri)
         http.request(request) do |response|
@@ -76,29 +68,15 @@ module Fluent
                 emit_record.delete("configuration")
               end
             end
-            @log.debug(emit_record)
+            log.debug(emit_record)
             router.emit(@tag, @time, emit_record)
           end
         end
       end
     rescue => e
-      @log.error('faild to run', error: e.to_s, error_class: e.class.to_s)
-      @log.error_backtrace
+      log.error('faild to run', error: e.to_s, error_class: e.class.to_s)
+      log.error_backtrace
     end
 
-    class TimerWatcher < Coolio::TimerWatcher
-      def initialize(interval, repeat, log, &callback)
-        @log = log
-        @callback = callback
-        super(interval, repeat)
-      end
-
-      def on_timer
-        @callback.call
-      rescue => e
-        @log.error e.to_s
-        @log.error_backtrace
-      end
-    end
   end
 end
